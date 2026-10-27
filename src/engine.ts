@@ -77,8 +77,6 @@ export class OceanEngine {
 
     this.reducedMotion.addEventListener("change", this.onMotionPreference);
     document.addEventListener("visibilitychange", this.onVisibility);
-    window.addEventListener("blur", this.onWindowBlur);
-    window.addEventListener("focus", this.onWindowFocus);
     if (this.pointerEnabled) {
       window.addEventListener("pointermove", this.onPointerMove, { passive: true });
       window.addEventListener("pointerdown", this.onPointerDown, { passive: true });
@@ -147,8 +145,6 @@ export class OceanEngine {
     this.intersectionObserver.disconnect();
     this.reducedMotion.removeEventListener("change", this.onMotionPreference);
     document.removeEventListener("visibilitychange", this.onVisibility);
-    window.removeEventListener("blur", this.onWindowBlur);
-    window.removeEventListener("focus", this.onWindowFocus);
     window.removeEventListener("pointermove", this.onPointerMove);
     window.removeEventListener("pointerdown", this.onPointerDown);
     document.documentElement.removeEventListener("pointerleave", this.onPointerLeave);
@@ -225,17 +221,6 @@ export class OceanEngine {
     } else {
       this.schedule();
     }
-  };
-
-  private onWindowBlur = () => {
-    this.hidden = true;
-    cancelAnimationFrame(this.raf);
-  };
-
-  private onWindowFocus = () => {
-    this.hidden = document.visibilityState === "hidden";
-    this.lastInput = performance.now();
-    this.schedule();
   };
 
   private onVisibility = () => {
