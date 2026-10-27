@@ -1,0 +1,59 @@
+{
+  "name": "dsh-ascii-sharks",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "ASCII 海洋背景 for DeepSeek Harness — 逐格光柵化的魚群與鯊魚、思考時追獵的潮汐、液態玻璃的訊息表面。",
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "ascii",
+    "background",
+    "theme",
+    "sharks"
+  ],
+  "author": "落卿 (louqing2763)",
+  "license": "MIT",
+  "icon": "./icon.svg",
+  "homepage": "https://github.com/louqing2763/dsh-ascii-sharks#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/louqing2763/dsh-ascii-sharks.git"
+  },
+  "bugs": {
+    "url": "https://github.com/louqing2763/dsh-ascii-sharks/issues"
+  },
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "lib",
+    "src",
+    "cordis.patch.yml",
+    "build.mjs",
+    "icon.svg",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "node build.mjs",
+    "market": "node tools/market.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": []
+    }
+  }
+}

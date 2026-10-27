@@ -1,0 +1,7 @@
+node_modules/
+.packtest/
+*.tgz
+test/
+.ref/
+lib/*.map
+.DS_Store

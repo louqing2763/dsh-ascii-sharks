@@ -1,0 +1,4 @@
+# dsh-ascii-sharks bundle patch: inserts its client entry into the web plugin roster.
+- insert:
+    - id: ascii-sharks
+      name: dsh-ascii-sharks

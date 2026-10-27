@@ -1,0 +1,65 @@
+{
+  "format": 1,
+  "title": {
+    "en": "dsh-ascii-sharks",
+    "zh": "ASCII 海洋"
+  },
+  "description": {
+    "en": "An ASCII ocean behind the DeepSeek Harness UI: rasterised fish and sharks, a tide that follows the conversation, liquid-glass message surfaces.",
+    "zh": "放在 DeepSeek Harness 介面後面的 ASCII 海洋：逐格光柵化的魚群與鯊魚、隨對話起伏的潮汐、液態玻璃的訊息表面。"
+  },
+  "metadata": {
+    "categories": {
+      "ui": {
+        "title": {
+          "en": "Interface",
+          "zh": "介面"
+        }
+      }
+    }
+  },
+  "plugins": [
+    {
+      "name": "dsh-ascii-sharks",
+      "title": {
+        "en": "ASCII Sharks",
+        "zh": "ASCII 海洋"
+      },
+      "description": {
+        "en": "An ASCII ocean behind the UI, with sharks that hunt while the agent is thinking and frosted-glass message surfaces.",
+        "zh": "介面後面的 ASCII 海洋；思考時鯊魚追獵魚群，訊息表面是一塊塊毛玻璃。"
+      },
+      "icon": "./icon.svg",
+      "author": "louqing2763",
+      "homepage": "https://github.com/louqing2763/dsh-ascii-sharks#readme",
+      "repository": {
+        "url": "https://github.com/louqing2763/dsh-ascii-sharks"
+      },
+      "metadata": {
+        "category": "ui",
+        "keywords": [
+          "ascii",
+          "background",
+          "ocean",
+          "canvas",
+          "glass",
+          "ambient"
+        ]
+      },
+      "versions": [
+        {
+          "version": "0.1.0",
+          "publishTimestamp": 1793101969,
+          "source": {
+            "type": "git",
+            "url": "https://github.com/louqing2763/dsh-ascii-sharks",
+            "commit": "0000000000000000000000000000000000000000"
+          },
+          "engines": {
+            "dsh": ">=0.2.0"
+          }
+        }
+      ]
+    }
+  ]
+}
