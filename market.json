@@ -48,12 +48,12 @@
       },
       "versions": [
         {
-          "version": "0.1.0",
-          "publishTimestamp": 1793103319,
+          "version": "0.1.1",
+          "publishTimestamp": 1793147935,
           "source": {
             "type": "git",
             "url": "https://github.com/louqing2763/dsh-ascii-sharks",
-            "commit": "2673ee7c0344b09337db1afbfb5c86825d3aa936"
+            "commit": "e353a1d27ce4fbb9da74b18544a9f08f3bed91ef"
           },
           "engines": {
             "dsh": ">=0.2.0"
