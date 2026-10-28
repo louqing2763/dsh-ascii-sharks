@@ -34,6 +34,7 @@ const DEFAULTS = {
   kinds: ['mako', 'classic', 'hammerhead'],
   fishCount: 180,
   fishScale: 1,
+  rippleScale: 0.7,
   sharkScale: 1,
   cardBlur: 24,
   cardTint: 0.18,
@@ -48,6 +49,11 @@ let canvas = null
 let layer = null
 let mounted = false
 let kindsSignature = ''
+
+/** The host paints dark mode as a body attribute; absence means light. */
+function isDarkTheme() {
+  return document.body.hasAttribute("data-ds-dark-theme")
+}
 
 function readSettings() {
   try {
@@ -109,6 +115,18 @@ function resetSettings() {
   }
 }
 
+let lastDark = null
+
+/** Push the host theme into the renderer and the light CSS switch. */
+function syncTheme() {
+  const dark = isDarkTheme()
+  if (dark !== lastDark) {
+    lastDark = dark
+    document.body.toggleAttribute("data-ass-light", !dark)
+    if (engine) engine.setTheme(dark)
+  }
+}
+
 function applyVars() {
   const root = document.documentElement
   root.style.setProperty('--ass-brightness', String(settings.brightness))
@@ -141,6 +159,7 @@ function syncScene() {
     engine.setFishScale(settings.fishScale)
     engine.setSharkScale(settings.sharkScale)
     engine.setIdleThrottle(settings.idleThrottle)
+    engine.setRippleScale(settings.rippleScale)
     try {
       markSurfaces()
     } catch {
@@ -172,6 +191,8 @@ function startScene() {
       fishScale: settings.fishScale,
       sharkScale: settings.sharkScale,
       idleThrottle: settings.idleThrottle,
+      dark: lastDark !== false,
+      rippleScale: settings.rippleScale,
       fps: settings.fps,
       pointer: settings.pointer,
       splash: settings.splash,
@@ -389,6 +410,51 @@ body[data-${STYLE_ATTR}] [data-user-bubble] {
 
 body[data-${STYLE_ATTR}] [data-ass-glass] { padding: 14px 16px; }
 body[data-${STYLE_ATTR}] [data-composer-glass] { padding: 12px 14px; }
+
+/* ---- daylight: the host marks its dark theme with body[data-ds-dark-theme],
+   so the inverse tells us to flip the water instead of the ink only. ---- */
+body[data-${STYLE_ATTR}][data-ass-light] {
+  background-color: #cfe6f7 !important;
+  background-image: linear-gradient(180deg, #dbeeff 0%, #b6d9f2 58%, #8fc3e6 100%) !important;
+}
+body[data-${STYLE_ATTR}][data-ass-light] #dsh-ascii-sharks-layer .ass-sea {
+  background-image:
+    radial-gradient(120% 72% at 50% -12%, rgba(255, 255, 255, .55), transparent 62%),
+    radial-gradient(70% 50% at 84% 74%, rgba(120, 180, 220, .34), transparent 74%),
+    linear-gradient(180deg, #d6ebfd 0%, #b3d7f1 58%, #8ec2e6 100%) !important;
+}
+/* A 1.25x brightening filter is for night water; in daylight it erases the
+   depth. Re-declare the vars on body so the layer inherits light values and
+   the brightness slider still applies on top. */
+body[data-${STYLE_ATTR}][data-ass-light] {
+  --ass-brightness: .98;
+  --ass-saturate: 1.04;
+}
+body[data-${STYLE_ATTR}][data-ass-light] div:has(> [data-slot="main"]) {
+  background-image: linear-gradient(180deg,
+    rgba(255, 255, 255, .42) 0%,
+    rgba(255, 255, 255, .12) 40%,
+    rgba(255, 255, 255, .34) 100%) !important;
+}
+body[data-${STYLE_ATTR}][data-ass-light] [data-ass-glass],
+body[data-${STYLE_ATTR}][data-ass-light] [data-user-glass],
+body[data-${STYLE_ATTR}][data-ass-light] [data-composer-glass] {
+  background-color: rgba(255, 255, 255, .58) !important;
+  border-color: rgba(255, 255, 255, .88) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .95),
+    inset 0 -1px 0 rgba(120, 170, 205, .18),
+    0 10px 28px rgba(40, 90, 130, .16) !important;
+}
+body[data-${STYLE_ATTR}][data-ass-light] [class*="_bubble"] {
+  background-color: rgba(255, 255, 255, .72) !important;
+  border-color: rgba(150, 190, 220, .35) !important;
+}
+body[data-${STYLE_ATTR}][data-ass-light] pre {
+  background-color: rgba(247, 252, 255, .92) !important;
+  border-color: rgba(60, 110, 150, .18) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .9), 0 6px 16px rgba(40, 90, 130, .10) !important;
+}
 
 /* ---- deeper water: the rest of the surfaces ---- */
 
@@ -617,6 +683,7 @@ function watchSurfaces() {
       try {
         markSurfaces()
         pushStoke()
+      syncTheme()
       } catch {
         /* never let decoration break the page */
       }
@@ -668,6 +735,7 @@ const ROWS = [
   ['cardBlur', '對話氣泡模糊', 0, 24, 1, '我的回覆那塊毛玻璃；0 = 關'],
   ['cardTint', '對話氣泡底色', 0, 0.7, 0.02, '越高越像實心卡片'],
   ['thinkTide', '思考聯動', 0, 1, 0.05, '我在想的時候海面起浪；0 = 關掉'],
+  ['rippleScale', '漣漪大小', 0.2, 2, 0.05, '點水面時漣漪散得多遠；調小比較清爽'],
 ]
 
 function Panel() {
@@ -798,6 +866,7 @@ function apply(ctx) {
     injectCss()
     applyVars()
     document.body.setAttribute(`data-${STYLE_ATTR}`, '')
+    syncTheme()
     mounted = true
     if (settings.enabled) startScene()
     const disposeAnswers = watchSurfaces()

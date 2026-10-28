@@ -25,6 +25,18 @@ const WAKE = DOT_RGB.length - 1;
 
 const ACCENTS = ["#e0892c", "#e03a32", "#b44ae0", "#33c8cc", "#3cb54a", "#3150e8", "#d9c14a"];
 
+/** Navy inks for the light app theme: bright dots disappear on pale water. */
+const DOT_RGB_LIGHT = DOT_RGB.map(([r, g, b]) => [
+  Math.round(r * 0.30 + 18),
+  Math.round(g * 0.34 + 30),
+  Math.round(b * 0.42 + 62),
+]);
+
+// Click splash: expanding concentric rings plus a short droplet burst.
+const RIPPLE_GLYPHS = "~-.:'";
+const DROP_GLYPHS = "*+o";
+const SPLASH_LIFE = 2.0;
+
 // Sparse glyphs on bright skin, dense glyphs in shadow, so the texture
 // reinforces the shading instead of fighting it.
 const SKIN_RAMP = ":;t%SX8#@";
@@ -248,9 +260,17 @@ function inTriangle(
 }
 
 /** Visible dark-grey cell grid, snapped to device pixels. Shared with the sidebar backdrop. */
-export function paintGrid(g: CanvasRenderingContext2D, W: number, H: number, cw: number, ch: number, dpr: number) {
+export function paintGrid(
+  g: CanvasRenderingContext2D,
+  W: number,
+  H: number,
+  cw: number,
+  ch: number,
+  dpr: number,
+  light = false,
+) {
   g.setTransform(1, 0, 0, 1, 0, 0);
-  g.strokeStyle = "rgba(255,255,255,0.055)";
+  g.strokeStyle = light ? "rgba(30, 62, 96, 0.075)" : "rgba(255,255,255,0.055)";
   g.lineWidth = 1;
   g.beginPath();
   for (let c = 0; c <= Math.ceil(W / cw); c++) {
@@ -343,6 +363,12 @@ export class AsciiRenderer {
   /** Fish cells bucketed by brightness, so each bucket is one fillStyle. */
   private fishBuckets: number[][] = FISH_ALPHAS.map(() => []);
   private fishStyles = FISH_ALPHAS.map((a) => `rgba(230,238,255,${a})`);
+  /** Dark water or pale water: swaps every ink in one place. */
+  private dark = true;
+  /** Live click splashes, each with its own age clock. */
+  private splashes: { x: number; y: number; t: number }[] = [];
+  /** How far the click rings travel, 1 = the old full-size splash. */
+  private rippleScale = 0.7;
 
   constructor(private canvas: HTMLCanvasElement, options: { transparent?: boolean } = {}) {
     // Transparent mode lets the page paint the water; the canvas then only
@@ -353,13 +379,38 @@ export class AsciiRenderer {
     this.ctx = ctx;
     this.bg = document.createElement("canvas");
 
-    for (let c = 0; c < DOT_RGB.length; c++) {
-      const [r, g, b] = DOT_RGB[c];
+    this.buildInk();
+  }
+
+  /** Rebuild every ink table for the current theme. */
+  private buildInk() {
+    const [r, g, b] = this.dark ? [230, 238, 255] : [38, 64, 110];
+    this.fishStyles = FISH_ALPHAS.map((a) =>
+      this.dark ? `rgba(${r},${g},${b},${a})` : `rgba(${r},${g},${b},${(a * 0.85).toFixed(2)})`,
+    );
+
+    this.dotStyles = [];
+    const palette = this.dark ? DOT_RGB : DOT_RGB_LIGHT;
+    for (let c = 0; c < palette.length; c++) {
+      const [cr, cg, cb] = palette[c];
       for (let l = 0; l < ALPHA_LEVELS; l++) {
         const a = (DOT_BASE_ALPHA[c] * (l + 1)) / ALPHA_LEVELS;
-        this.dotStyles.push(`rgba(${r},${g},${b},${a.toFixed(3)})`);
+        this.dotStyles.push(`rgba(${cr},${cg},${cb},${a.toFixed(3)})`);
       }
     }
+  }
+
+  /** Switch the whole ink set with the app theme. */
+  /** Scale the click rings; the droplet burst stays put. */
+  setRippleScale(scale: number) {
+    this.rippleScale = clamp(scale, 0.2, 2.5);
+  }
+
+  setTheme(dark: boolean) {
+    const next = dark !== false;
+    if (next === this.dark) return;
+    this.dark = next;
+    this.buildInk();
   }
 
   get cellWidth() {
@@ -441,7 +492,7 @@ export class AsciiRenderer {
       g.fillStyle = "#000";
       g.fillRect(0, 0, W, H);
     }
-    paintGrid(g, W, H, cw, ch, dpr);
+    paintGrid(g, W, H, cw, ch, dpr, !this.dark);
   }
 
   render(world: World, dt: number) {
@@ -469,6 +520,7 @@ export class AsciiRenderer {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
+    this.drawSplashes(world.time);
     this.drawHeat();
     this.drawFish();
     this.drawSharks(t);
@@ -506,6 +558,8 @@ export class AsciiRenderer {
         this.stamp(this.energy, e.x, e.y, 3, 0.9);
       } else {
         this.stamp(this.energy, e.x, e.y, 6, 1.4);
+        this.splashes.push({ x: e.x, y: e.y, t: world.time });
+        if (this.splashes.length > 12) this.splashes.splice(0, this.splashes.length - 12);
       }
     }
     world.events.length = 0;
@@ -856,11 +910,11 @@ export class AsciiRenderer {
       ctx.fillRect(x + 1, y + 1, cw - 1, ch - 1);
 
       let color: string;
-      if (flag === FLAG_EYE) color = "#9aa0ad";
+      if (flag === FLAG_EYE) color = this.dark ? "#9aa0ad" : "#3c4652";
       else if (flag === FLAG_MARK) color = `rgb(${Math.round(70 * tr)},${Math.round(70 * tg)},${Math.round(70 * tb)})`;
       else if (roll < 0.09) color = ACCENTS[key % ACCENTS.length];
       else if (roll < 0.13) color = "#ffffff";
-      else color = shade > 0.55 ? "#0e0f13" : "#1b1d24";
+      else color = this.dark ? (shade > 0.55 ? "#0e0f13" : "#1b1d24") : shade > 0.55 ? "#f3f9ff" : "#dfeaf6";
       ctx.fillStyle = color;
       ctx.fillText(glyph, x + cw / 2, y + ch / 2 + 1);
     }
@@ -931,6 +985,67 @@ export class AsciiRenderer {
       }
     }
     ctx.font = previousFont;
+  }
+
+  /** Three concentric rings, cell-snapped, plus a droplet burst at the centre. */
+  private drawSplashes(t: number) {
+    const { ctx, cw, ch, cols, rows } = this;
+    if (this.splashes.length === 0 || cols === 0) return
+    ctx.font = `600 ${Math.round(ch * 0.7)}px ${this.fontFamily}`
+    ctx.textAlign = "center"
+    ctx.textBaseline = "middle"
+
+    for (let si = this.splashes.length - 1; si >= 0; si--) {
+      const s = this.splashes[si]
+      const age = t - s.t
+      if (age > SPLASH_LIFE) {
+        this.splashes.splice(si, 1)
+        continue
+      }
+      if (age < 0) continue
+
+      const fade = 1 - age / SPLASH_LIFE
+      for (let ring = 0; ring < 3; ring++) {
+        const ringAge = age - ring * 0.11
+        if (ringAge <= 0) continue
+        const radiusPx = ringAge * 250 * this.rippleScale
+        const rCols = radiusPx / cw
+        const rRows = radiusPx / ch
+        const steps = Math.max(10, Math.round(Math.PI * 2 * Math.max(rCols, 1) * 0.9))
+        for (let k = 0; k < steps; k++) {
+          const a = (k / steps) * Math.PI * 2
+          const cx = Math.round((s.x + Math.cos(a) * radiusPx) / cw)
+          const cy = Math.round((s.y + Math.sin(a) * radiusPx) / ch)
+          const innerX = Math.round((s.x + Math.cos(a) * radiusPx * 0.94) / cw)
+          const innerY = Math.round((s.y + Math.sin(a) * radiusPx * 0.94) / ch)
+          const alpha = (this.dark ? 0.55 : 0.42) * fade * (ring === 0 ? 1 : 1 - ring * 0.22)
+          ctx.fillStyle = this.dark
+            ? `rgba(190, 232, 255, ${alpha.toFixed(3)})`
+            : `rgba(30, 92, 140, ${alpha.toFixed(3)})`
+          for (const [gc, gr] of [[cx, cy], [innerX, innerY]] as const) {
+            if (gc < 0 || gr < 0 || gc >= cols || gr >= rows) continue
+            ctx.fillText(RIPPLE_GLYPHS[ring], gc * cw + cw / 2, gr * ch + ch / 2 + 1)
+          }
+        }
+      }
+
+      // droplets: only while the splash is fresh
+      if (age < 0.55) {
+        const dFade = 1 - age / 0.55
+        for (let d = 0; d < 5; d++) {
+          const ang = (d / 5) * Math.PI * 2 + s.x * 0.01
+          const dist = age * 90 + 6
+          const dc = Math.round((s.x + Math.cos(ang) * dist) / cw)
+          const dr = Math.round((s.y + Math.sin(ang) * dist) / ch)
+          if (dc < 0 || dr < 0 || dc >= cols || dr >= rows) continue
+          const alpha = (this.dark ? 0.8 : 0.6) * dFade
+          ctx.fillStyle = this.dark
+            ? `rgba(226, 246, 255, ${alpha.toFixed(3)})`
+            : `rgba(24, 78, 120, ${alpha.toFixed(3)})`
+          ctx.fillText(DROP_GLYPHS[d % DROP_GLYPHS.length], dc * cw + cw / 2, dr * ch + ch / 2 + 1)
+        }
+      }
+    }
   }
 
   private drawHeat() {

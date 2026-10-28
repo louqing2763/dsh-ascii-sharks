@@ -20,6 +20,10 @@ export interface OceanOptions {
   fishScale?: number;
   /** Detect idle and drop to 12fps (default on). */
   idleThrottle?: boolean;
+  /** Click ripple size, 1 = default. */
+  rippleScale?: number;
+  /** Dark water (true) or pale water (false). */
+  dark?: boolean;
 }
 
 /**
@@ -56,6 +60,8 @@ export class OceanEngine {
     this.renderer = new AsciiRenderer(canvas, { transparent: options.transparent === true });
     this.renderer.setFontFamily(getComputedStyle(canvas).fontFamily);
     this.renderer.setFishScale(options.fishScale === undefined ? 1 : options.fishScale);
+    this.renderer.setTheme(options.dark !== false);
+    this.renderer.setRippleScale(options.rippleScale === undefined ? 0.7 : options.rippleScale);
     this.fps = options.fps === undefined ? 30 : options.fps;
     this.sharkScale =
       options.sharkScale !== undefined && Number.isFinite(options.sharkScale) && options.sharkScale > 0
@@ -103,6 +109,15 @@ export class OceanEngine {
   }
 
   /** Turn the idle down-clock on or off at runtime. */
+  setRippleScale(scale: number) {
+    this.renderer.setRippleScale(scale);
+  }
+
+  /** Flip the ink set with the app theme. */
+  setTheme(dark: boolean) {
+    this.renderer.setTheme(dark !== false);
+  }
+
   setIdleThrottle(on: boolean) {
     this.idleThrottle = on === true;
     if (!this.idleThrottle) this.schedule();
